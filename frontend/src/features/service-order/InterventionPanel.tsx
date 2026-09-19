@@ -76,6 +76,7 @@ export function InterventionPanel({ serviceOrderId, onChange }: InterventionPane
     try {
       await issueWarranty(token, interventionId, kind, 12);
       setConfirmation('Garantia emitida por 12 meses.');
+      intervention.reload();
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : 'No se pudo emitir la garantia.');
     }
@@ -188,7 +189,9 @@ export function InterventionPanel({ serviceOrderId, onChange }: InterventionPane
                   </td>
                   <td>{formatDateTime(item.performedAt)}</td>
                   <td>
-                    {isAdministrator ? (
+                    {item.warrantyId ? (
+                      <span>{item.valid ? 'Garantia vigente' : 'Garantia vencida'}</span>
+                    ) : isAdministrator ? (
                       <button
                         type="button"
                         className="button button--secondary"

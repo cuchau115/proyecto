@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"workshop/internal/domain"
+	"workshop/internal/usecase"
 )
 
 const interventionColumn = "id, service_order_id, technician_id, description, labor_hour_count, performed_at, created_at"
@@ -86,6 +87,62 @@ func (r InterventionRepository) ListByServiceOrder(ctx context.Context, serviceO
 		"SELECT "+interventionColumn+" FROM intervention WHERE service_order_id = ? ORDER BY performed_at",
 		serviceOrderID,
 	)
+}
+
+// ListByServiceOrderView reads interventions with their latest warranty, if
+// one exists, while preserving interventions that have no warranty.
+func (r InterventionRepository) ListByServiceOrderView(ctx context.Context, serviceOrderID string) ([]usecase.InterventionView, error) {
+	query := "SELECT i.id, i.service_order_id, i.technician_id, i.description, i.labor_hour_count, "+
+		"i.performed_at, i.created_at, w.id, w.warranty_kind, w.expiration_date "+
+		"FROM intervention i "+
+		"LEFT JOIN warranty w ON w.intervention_id = i.id "+
+		"LEFT JOIN warranty newer ON newer.intervention_id = w.intervention_id AND "+
+		"(newer.issued_at > w.issued_at OR (newer.issued_at = w.issued_at AND newer.id > w.id)) "+
+		"WHERE i.service_order_id = ? AND newer.id IS NULL ORDER BY i.performed_at"
+	queryCtx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	rows, err := r.database.QueryContext(queryCtx, query, serviceOrderID)
+	if err != nil {
+		return nil, translate(err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	listed := make([]usecase.InterventionView, 0)
+	for rows.Next() {
+		var view usecase.InterventionView
+		var warrantyID, warrantyKind sql.NullString
+		var warrantyExpiration sql.NullTime
+		if err := rows.Scan(
+			&view.Intervention.ID, &view.Intervention.ServiceOrderID, &view.Intervention.TechnicianID,
+			&view.Intervention.Description, &view.Intervention.LaborHourCount,
+			&view.Intervention.PerformedAt, &view.Intervention.CreatedAt,
+			&warrantyID, &warrantyKind, &warrantyExpiration,
+		); err != nil {
+			return nil, translate(err)
+		}
+		if warrantyID.Valid {
+			view.WarrantyID = &warrantyID.String
+			kind := domain.WarrantyKind(warrantyKind.String)
+			view.WarrantyKind = &kind
+			if warrantyExpiration.Valid {
+				expiration := warrantyExpiration.Time
+				view.WarrantyExpiration = &expiration
+			}
+		}
+		listed = append(listed, view)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, translate(err)
+	}
+	for index := range listed {
+		part, err := r.listPart(queryCtx, listed[index].Intervention.ID)
+		if err != nil {
+			return nil, err
+		}
+		listed[index].Intervention.Part = part
+	}
+	return listed, nil
 }
 
 // ListByVehicle reads every intervention of a vehicle for the timeline.

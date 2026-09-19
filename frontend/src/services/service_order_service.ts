@@ -59,6 +59,9 @@ export interface Intervention {
   laborHourCount: number;
   performedAt: string;
   part: PartUsage[];
+  warrantyId: string | null;
+  kind: 'LABOR' | 'PART' | null;
+  valid: boolean | null;
 }
 
 export function listServiceOrder(token: string, status: string): Promise<ServiceOrder[]> {
