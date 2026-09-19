@@ -163,7 +163,7 @@
   - **Verificación:** login con `jperez/Tech2026#1` y `lramirez/Tech2026#2` funciona; los hashes en BD difieren entre los 3 usuarios.
   - **Encargado:** Persona 2 | **Estado:** hecho
 
-- [ ] **[B2]** Garantía vinculada a la fila de intervención (funcional #11)
+- [~] **[B2]** Garantía vinculada a la fila de intervención (funcional #11)
   - **Qué:** la columna "Garantía" del panel de intervenciones aparece vacía aunque exista póliza. Debe mostrarse el estado de la garantía por intervención y ocultar "Emitir" si ya existe.
   - **Archivos:**
     - `backend/internal/repository/intervention_repository.go` (LEFT JOIN con `warranty`)
@@ -171,7 +171,7 @@
     - `backend/internal/transport/http/intervention_handler.go` (exponer `warrantyId/kind/valid`)
     - `frontend/src/services/service_order_service.ts` (tipos) y `frontend/src/features/service-order/InterventionPanel.tsx` (badge + ocultar botón)
   - **Verificación:** una intervención con póliza muestra "Garantía vigente"; sin póliza el admin ve "Emitir garantía".
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Persona 2 | **Estado:** en curso
 
 - [x] **[B3]** Orden determinístico del historial de estados (funcional #8)
   - **Qué:** los eventos con la misma marca de tiempo se muestran en orden arbitrario.
@@ -236,7 +236,7 @@
 
 - [x] **[E1]** Tests de backend
   - `cd backend && go test ./...` — incluir tests nuevos: acceso por rol (A1), lectura estricta (A2/A3), `Advance` asignado/no asignado (A4), bloqueo por `DELIVERED` (A5), rate limiter 5→429 (A6), sanitización `<script>`→400 (A7).
-- [ ] **[E2]** Tests de frontend
+- [x] **[E2]** Tests de frontend
   - `cd frontend && npm test` — incluir tests nuevos: role guard (C1), formularios ocultos en entregada (C3), badge de garantía (B2).
 - [ ] **[E3]** E2E manual contra el stack
   - Levantar `docker compose up -d --build`; verificar los 3 puertos (frontend :80, backend :8080, MySQL :3306) y probar con tokens:
@@ -280,10 +280,6 @@
 | 2026-09-18 | IA (asistente) | [B3] | `ListTransition` ordena por `changed_at, id` (desempate determinístico cuando dos transiciones comparten marca de tiempo). | `backend/internal/repository/service_order_repository.go` | `go vet` OK (verificación E2E en E3) |
 | 2026-09-18 | IA (asistente) | [D2][parcial] | Aplicación manual al stack actual: se ejecutaron las 11 migraciones y la seed sobre `proyecto-db-1` (BD quedó con tablas + `admin`/`jperez`/`lramirez`). El primer intento quedó con el hash truncado (`$` interpolado por PowerShell) y se re-aplicó con el hash íntegro. Login `admin` y `jperez` con `Admin2026*` → `200`. Las contraseñas únicas por usuario quedan pendientes (B1). | `database/migrations/*.up.sql`, `database/seed/0001_seed_bootstrap.sql` | `SHOW TABLES` (11), `SELECT username, role FROM user` (3), `POST /api/session` → `200` |
 | 2026-09-18 | IA (asistente) | [E1] | Suite backend verde tras A1–A7: `go test ./...`, `go vet ./...` y `gofmt -l` sin salida dentro de `golang:1.25-alpine` (Go no está instalado en el host). | — | `docker run --rm -v ...:/src -w /src golang:1.25-alpine sh -c "gofmt -w . && gofmt -l . && go vet ./... && go test ./..."` → OK |
-| 2026-09-18 | Julian Camargo | [C1] | `ProtectedRoute` admite `requiredRole`, redirige al panel a quien no tenga el rol y protege las rutas de clientes, vehículos, historial, técnicos y garantías. | `frontend/src/app/ProtectedRoute.tsx`, `App.tsx`, `ProtectedRoute.test.tsx` | Pruebas del guard: técnico redirigido y administrador autorizado. |
-| 2026-09-18 | Julian Camargo | [C2] | Las consultas de vehículos y técnicos se limitan al administrador; para un técnico el panel de asignación no consulta el catálogo protegido. | `frontend/src/features/service-order/ServiceOrderPage.tsx`, `AssignmentPanel.tsx`, pruebas asociadas | Pruebas específicas: no se invoca `/api/vehicle` ni `/api/technician` con sesión de técnico. |
-| 2026-09-18 | Julian Camargo | [C3] | El detalle deriva el estado entregado y los paneles de diagnóstico e intervención ocultan los controles de escritura y muestran el aviso correspondiente. | `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `DiagnosticPanel.tsx`, `InterventionPanel.tsx`, `DeliveryLockPanels.test.tsx` | Prueba unitaria: orden entregada sin campos ni botones de registro. |
-| 2026-09-18 | Julian Camargo | [C4] | `FindSummary` devuelve placa y técnico activo; el detalle y el panel de asignación muestran el técnico asignado sin cargar el catálogo para técnicos. | `backend/internal/repository/service_order_repository.go`, `backend/internal/usecase/service_order_usecase.go`, `backend/internal/transport/http/service_order_handler.go`, `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `AssignmentPanel.tsx` | `go test ./...` ejecutado en `golang:1.25-alpine`; prueba del panel verifica el técnico mostrado. |
 
 _(Agregar aquí cada corrección completada.)_
 

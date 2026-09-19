@@ -14,6 +14,20 @@ type PartUsageInput struct {
 	Quantity int
 }
 
+// InterventionView is the intervention list read model, including the most
+// recent warranty issued for the intervention when one exists.
+type InterventionView struct {
+	Intervention       domain.Intervention
+	WarrantyID         *string
+	WarrantyKind       *domain.WarrantyKind
+	WarrantyExpiration *time.Time
+	WarrantyValid      *bool
+}
+
+type interventionViewRepository interface {
+	ListByServiceOrderView(ctx context.Context, serviceOrderID string) ([]InterventionView, error)
+}
+
 // InterventionRepository is the narrow port the intervention use case needs.
 // Save writes the intervention and its parts in one transaction.
 type InterventionRepository interface {
@@ -111,4 +125,35 @@ func (i InterventionUseCase) AuthorizeRead(ctx context.Context, orderID, actorUs
 // ListByServiceOrder returns the interventions recorded on an order.
 func (i InterventionUseCase) ListByServiceOrder(ctx context.Context, serviceOrderID string) ([]domain.Intervention, error) {
 	return i.intervention.ListByServiceOrder(ctx, serviceOrderID)
+}
+
+// ListByServiceOrderView returns interventions with their latest warranty
+// state. The fallback preserves compatibility with repositories that only
+// implement the original intervention list port.
+func (i InterventionUseCase) ListByServiceOrderView(ctx context.Context, serviceOrderID string) ([]InterventionView, error) {
+	viewRepository, ok := i.intervention.(interventionViewRepository)
+	if !ok {
+		listed, err := i.intervention.ListByServiceOrder(ctx, serviceOrderID)
+		if err != nil {
+			return nil, err
+		}
+		views := make([]InterventionView, 0, len(listed))
+		for _, item := range listed {
+			views = append(views, InterventionView{Intervention: item})
+		}
+		return views, nil
+	}
+	views, err := viewRepository.ListByServiceOrderView(ctx, serviceOrderID)
+	if err != nil {
+		return nil, err
+	}
+	consultedAt := i.now()
+	for index := range views {
+		if views[index].WarrantyExpiration == nil {
+			continue
+		}
+		valid := consultedAt.Before(*views[index].WarrantyExpiration)
+		views[index].WarrantyValid = &valid
+	}
+	return views, nil
 }
