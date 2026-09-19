@@ -95,6 +95,13 @@ export function runAssertions(context) {
   assert(hashedPassword === '$2a', 'the seeded administrator password is a bcrypt hash');
   checks += 1;
 
+  const distinctPasswordHashes = queryScalar(
+    'SELECT COUNT(DISTINCT password_hash) FROM ' + USER_TABLE +
+      " WHERE id IN ('" + ADMIN_ID + "', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333')",
+  );
+  assert(distinctPasswordHashes === '3', 'each seeded user has a distinct password hash');
+  checks += 1;
+
   const technicianCount = queryScalar('SELECT COUNT(*) FROM technician');
   assert(technicianCount === '2', 'the seed inserted the two bootstrap technicians');
   checks += 1;

@@ -152,7 +152,7 @@
 
 ### B. Backend — Hallazgos funcionales
 
-- [ ] **[B1]** Contraseñas únicas por usuario (funcional #4)
+- [~] **[B1]** Contraseñas únicas por usuario (funcional #4)
   - **Qué:** los 3 usuarios (`admin`, `jperez`, `lramirez`) comparten hoy el mismo hash bcrypt. El seed debe usar un hash distinto por cuenta.
   - **Archivos:**
     - `database/seed/0001_seed_bootstrap.sql` (usar `@technician_one_password_hash` y `@technician_two_password_hash`)
@@ -161,7 +161,7 @@
     - `database/tests/schema_assertions.mjs` (aserción: los 3 `password_hash` son distintos)
   - **Pasos:** 1) generar los hashes; 2) actualizar seed/entorno/validador; 3) re-aplicar el seed al stack (ver D).
   - **Verificación:** login con `jperez/Tech2026#1` y `lramirez/Tech2026#2` funciona; los hashes en BD difieren entre los 3 usuarios.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Persona 2 | **Estado:** en curso
 
 - [ ] **[B2]** Garantía vinculada a la fila de intervención (funcional #11)
   - **Qué:** la columna "Garantía" del panel de intervenciones aparece vacía aunque exista póliza. Debe mostrarse el estado de la garantía por intervención y ocultar "Emitir" si ya existe.
@@ -280,6 +280,7 @@
 | 2026-09-18 | IA (asistente) | [B3] | `ListTransition` ordena por `changed_at, id` (desempate determinístico cuando dos transiciones comparten marca de tiempo). | `backend/internal/repository/service_order_repository.go` | `go vet` OK (verificación E2E en E3) |
 | 2026-09-18 | IA (asistente) | [D2][parcial] | Aplicación manual al stack actual: se ejecutaron las 11 migraciones y la seed sobre `proyecto-db-1` (BD quedó con tablas + `admin`/`jperez`/`lramirez`). El primer intento quedó con el hash truncado (`$` interpolado por PowerShell) y se re-aplicó con el hash íntegro. Login `admin` y `jperez` con `Admin2026*` → `200`. Las contraseñas únicas por usuario quedan pendientes (B1). | `database/migrations/*.up.sql`, `database/seed/0001_seed_bootstrap.sql` | `SHOW TABLES` (11), `SELECT username, role FROM user` (3), `POST /api/session` → `200` |
 | 2026-09-18 | IA (asistente) | [E1] | Suite backend verde tras A1–A7: `go test ./...`, `go vet ./...` y `gofmt -l` sin salida dentro de `golang:1.25-alpine` (Go no está instalado en el host). | — | `docker run --rm -v ...:/src -w /src golang:1.25-alpine sh -c "gofmt -w . && gofmt -l . && go vet ./... && go test ./..."` → OK |
+| 2026-09-18 | Persona 2 | [B1][parcial] | El seed dejó de reutilizar el hash del administrador: cada técnico recibe una variable bcrypt propia. El runner enlaza ambas variables y las aserciones verifican que los tres hashes sean distintos; se documentaron `Tech2026#1` y `Tech2026#2`. | `database/seed/0001_seed_bootstrap.sql`, `database/.env.example`, `database/scripts/run_validation.mjs`, `database/tests/schema_assertions.mjs` | Hashes verificados con bcrypt y `git diff --check` OK; falta ejecutar `node scripts/run_validation.mjs` y confirmar login/BD porque Node.js y Docker no están disponibles en el host. |
 
 _(Agregar aquí cada corrección completada.)_
 
