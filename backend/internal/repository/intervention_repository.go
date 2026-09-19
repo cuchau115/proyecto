@@ -92,12 +92,12 @@ func (r InterventionRepository) ListByServiceOrder(ctx context.Context, serviceO
 // ListByServiceOrderView reads interventions with their latest warranty, if
 // one exists, while preserving interventions that have no warranty.
 func (r InterventionRepository) ListByServiceOrderView(ctx context.Context, serviceOrderID string) ([]usecase.InterventionView, error) {
-	query := "SELECT i.id, i.service_order_id, i.technician_id, i.description, i.labor_hour_count, "+
-		"i.performed_at, i.created_at, w.id, w.warranty_kind, w.expiration_date "+
-		"FROM intervention i "+
-		"LEFT JOIN warranty w ON w.intervention_id = i.id "+
-		"LEFT JOIN warranty newer ON newer.intervention_id = w.intervention_id AND "+
-		"(newer.issued_at > w.issued_at OR (newer.issued_at = w.issued_at AND newer.id > w.id)) "+
+	query := "SELECT i.id, i.service_order_id, i.technician_id, i.description, i.labor_hour_count, " +
+		"i.performed_at, i.created_at, w.id, w.warranty_kind, w.expiration_date " +
+		"FROM intervention i " +
+		"LEFT JOIN warranty w ON w.intervention_id = i.id " +
+		"LEFT JOIN warranty newer ON newer.intervention_id = w.intervention_id AND " +
+		"(newer.issued_at > w.issued_at OR (newer.issued_at = w.issued_at AND newer.id > w.id)) " +
 		"WHERE i.service_order_id = ? AND newer.id IS NULL ORDER BY i.performed_at"
 	queryCtx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()

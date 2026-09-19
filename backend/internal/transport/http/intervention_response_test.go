@@ -20,9 +20,9 @@ func TestToInterventionResponseIncludesWarrantyState(t *testing.T) {
 	kind := domain.WarrantyLabor
 	valid := true
 	response := toInterventionResponse(usecase.InterventionView{
-		Intervention: intervention,
-		WarrantyID:   stringPointer("warranty-1"),
-		WarrantyKind: &kind,
+		Intervention:  intervention,
+		WarrantyID:    stringPointer("warranty-1"),
+		WarrantyKind:  &kind,
 		WarrantyValid: &valid,
 	})
 

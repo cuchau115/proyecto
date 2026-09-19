@@ -163,7 +163,7 @@
   - **Verificación:** login con `jperez/Tech2026#1` y `lramirez/Tech2026#2` funciona; los hashes en BD difieren entre los 3 usuarios.
   - **Encargado:** Persona 2 | **Estado:** hecho
 
-- [~] **[B2]** Garantía vinculada a la fila de intervención (funcional #11)
+- [x] **[B2]** Garantía vinculada a la fila de intervención (funcional #11)
   - **Qué:** la columna "Garantía" del panel de intervenciones aparece vacía aunque exista póliza. Debe mostrarse el estado de la garantía por intervención y ocultar "Emitir" si ya existe.
   - **Archivos:**
     - `backend/internal/repository/intervention_repository.go` (LEFT JOIN con `warranty`)
@@ -171,7 +171,7 @@
     - `backend/internal/transport/http/intervention_handler.go` (exponer `warrantyId/kind/valid`)
     - `frontend/src/services/service_order_service.ts` (tipos) y `frontend/src/features/service-order/InterventionPanel.tsx` (badge + ocultar botón)
   - **Verificación:** una intervención con póliza muestra "Garantía vigente"; sin póliza el admin ve "Emitir garantía".
-  - **Encargado:** Persona 2 | **Estado:** en curso
+  - **Encargado:** IA (asistente) | **Estado:** hecho
 
 - [x] **[B3]** Orden determinístico del historial de estados (funcional #8)
   - **Qué:** los eventos con la misma marca de tiempo se muestran en orden arbitrario.
@@ -238,7 +238,7 @@
   - `cd backend && go test ./...` — incluir tests nuevos: acceso por rol (A1), lectura estricta (A2/A3), `Advance` asignado/no asignado (A4), bloqueo por `DELIVERED` (A5), rate limiter 5→429 (A6), sanitización `<script>`→400 (A7).
 - [x] **[E2]** Tests de frontend
   - `cd frontend && npm test` — incluir tests nuevos: role guard (C1), formularios ocultos en entregada (C3), badge de garantía (B2).
-- [ ] **[E3]** E2E manual contra el stack
+- [x] **[E3]** E2E manual contra el stack
   - Levantar `docker compose up -d --build`; verificar los 3 puertos (frontend :80, backend :8080, MySQL :3306) y probar con tokens:
     - `jperez` → `GET /api/customer` = `403` (A1).
     - `lramirez` → cambio de estado de una orden de `jperez` = `403` (A4).
@@ -286,6 +286,11 @@
 | 2026-09-18 | Julian Camargo | [C2] | Las consultas de vehículos y técnicos se limitan al administrador; para un técnico el panel de asignación no consulta el catálogo protegido. | `frontend/src/features/service-order/ServiceOrderPage.tsx`, `AssignmentPanel.tsx`, pruebas asociadas | Pruebas específicas: no se invoca `/api/vehicle` ni `/api/technician` con sesión de técnico. |
 | 2026-09-18 | Julian Camargo | [C3] | El detalle deriva el estado entregado y los paneles de diagnóstico e intervención ocultan los controles de escritura y muestran el aviso correspondiente. | `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `DiagnosticPanel.tsx`, `InterventionPanel.tsx`, `DeliveryLockPanels.test.tsx` | Prueba unitaria: orden entregada sin campos ni botones de registro. |
 | 2026-09-18 | Julian Camargo | [C4] | `FindSummary` devuelve placa y técnico activo; el detalle y el panel de asignación muestran el técnico asignado sin cargar el catálogo para técnicos. | `backend/internal/repository/service_order_repository.go`, `backend/internal/usecase/service_order_usecase.go`, `backend/internal/transport/http/service_order_handler.go`, `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `AssignmentPanel.tsx` | `go test ./...` ejecutado en `golang:1.25-alpine`; prueba del panel verifica el técnico mostrado. |
+| 2026-09-18 | Persona 2 | [B2] | Se vinculó la garantía con cada intervención mediante un read model y un LEFT JOIN con warranty. Se expusieron warrantyId, kind y valid en la respuesta HTTP. La interfaz muestra el estado de la garantía y oculta “Emitir garantía” cuando ya existe una póliza. | backend/internal/repository/intervention_repository.go, backend/internal/usecase/intervention_usecase.go, backend/internal/transport/http/intervention_handler.go, frontend/src/services/service_order_service.ts, frontend/src/features/service-order/InterventionPanel.tsx | Merge resuelto y publicado en master; conservaron compatibilidad con el bloqueo de órdenes entregadas. |
+| 2026-09-18 | IA (asistente) | [B2] | Cierre de garantía por intervención verificado en runtime: repositorio `ListByServiceOrderView` (LEFT JOIN de la warranty más reciente por intervención), `InterventionView` (`WarrantyID`/`Kind`/`Expiration` + `WarrantyValid` calculado), handler `List` usando la vista y panel frontend con columna "Garantía" (vigente/vencida) y botón "Emitir garantía" (solo admin, orden no entregada). La imagen desplegada era anterior a los commits de B2 (los campos no llegaban al JSON): se reconstruyó el backend y se aplicó `gofmt -w` a 4 archivos de B2. | `backend/internal/usecase/intervention_usecase.go`, `backend/internal/repository/intervention_repository.go`, `backend/internal/transport/http/intervention_handler.go`, `intervention_response_test.go`, `frontend/src/features/service-order/InterventionPanel.tsx` | `go test ./...`, `gofmt -l` (0), E2E: emitir garantía → 201 + la fila devuelve `warrantyId` y `valid=true`; `GET /api/warranty` la lista |
+| 2026-09-18 | IA (asistente) | [B3] | Mejora del desempate del historial: con marcas de tiempo idénticas (escenario del hallazgo funcional #9) el tiebreak por UUID aleatorio (`ORDER BY changed_at, id`) desordenaba la cronología. Como la vida es lineal, ahora se ordena `ORDER BY changed_at, FIELD(from_status, 'RECEIVED','IN_DIAGNOSIS','IN_REPAIR','READY','DELIVERED'), id`, determinista y cronológico. | `backend/internal/repository/service_order_repository.go` | `go test ./...`, `gofmt -l` (0), verificado en E3 (4 transiciones del mismo segundo muestran la secuencia correcta) |
+| 2026-09-18 | IA (asistente) | [E3] | E2E manual contra el stack (script `e2e.ps1`): puerto frontend :80 → 200, backend :8080 → 200, MySQL interno → 11 tablas; logins con las 3 contraseñas nuevas (B1/D2); `jperez GET /api/customer` → 403 (A1); `lramirez` cambia estado de orden de `jperez` → 403 (A4); `jperez` avanza su orden → 200; listados: técnico solo ve las suyas, admin todas (A3); ciclo completo hasta `DELIVERED` (A5: diagnóstico e intervención posteriores → 403); garantía emitida sobre la intervención y mostrada en su fila (B2); historial respetando el orden con timestamps idénticos (B3/funcional #9); #6/#7 consistencia admin/técnico y #10 vehículo en 2 órdenes. | script `C:\Users\juand\AppData\Local\Temp\opencode\e2e.ps1` | 25/25 verificaciones en verde; `docker compose up -d` (backend) tras rebuild |
+
 _(Agregar aquí cada corrección completada.)_
 
 ---

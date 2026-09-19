@@ -214,7 +214,8 @@ func (r ServiceOrderRepository) ListTransition(ctx context.Context, serviceOrder
 	rows, err := r.database.QueryContext(
 		queryCtx,
 		"SELECT id, service_order_id, from_status, to_status, changed_by_user_id, changed_at "+
-			"FROM status_transition WHERE service_order_id = ? ORDER BY changed_at, id",
+			"FROM status_transition WHERE service_order_id = ? "+
+			"ORDER BY changed_at, FIELD(from_status, 'RECEIVED', 'IN_DIAGNOSIS', 'IN_REPAIR', 'READY', 'DELIVERED'), id",
 		serviceOrderID,
 	)
 	if err != nil {
