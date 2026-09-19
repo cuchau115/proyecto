@@ -29,6 +29,9 @@ type interventionResponse struct {
 	LaborHourCount float64            `json:"laborHourCount"`
 	PerformedAt    string             `json:"performedAt"`
 	Part           []partUsagePayload `json:"part"`
+	WarrantyID     *string            `json:"warrantyId"`
+	WarrantyKind   *string            `json:"kind"`
+	WarrantyValid  *bool              `json:"valid"`
 }
 
 // InterventionHandler exposes the work executed on a vehicle.
@@ -65,7 +68,7 @@ func (h InterventionHandler) Register(writer http.ResponseWriter, request *http.
 		failure(writer, err)
 		return
 	}
-	respond(writer, http.StatusCreated, toInterventionResponse(registered))
+	respond(writer, http.StatusCreated, toInterventionResponse(usecase.InterventionView{Intervention: registered}))
 }
 
 // List returns the interventions recorded on an order.
@@ -82,7 +85,7 @@ func (h InterventionHandler) List(writer http.ResponseWriter, request *http.Requ
 		failure(writer, err)
 		return
 	}
-	listed, err := h.intervention.ListByServiceOrder(request.Context(), orderID)
+	listed, err := h.intervention.ListByServiceOrderView(request.Context(), orderID)
 	if err != nil {
 		failure(writer, err)
 		return
@@ -94,7 +97,8 @@ func (h InterventionHandler) List(writer http.ResponseWriter, request *http.Requ
 	respond(writer, http.StatusOK, payload)
 }
 
-func toInterventionResponse(intervention domain.Intervention) interventionResponse {
+func toInterventionResponse(view usecase.InterventionView) interventionResponse {
+	intervention := view.Intervention
 	part := make([]partUsagePayload, 0, len(intervention.Part))
 	for _, item := range intervention.Part {
 		part = append(part, partUsagePayload{PartName: item.PartName, Quantity: item.Quantity})
@@ -107,5 +111,16 @@ func toInterventionResponse(intervention domain.Intervention) interventionRespon
 		LaborHourCount: intervention.LaborHourCount,
 		PerformedAt:    formatTime(intervention.PerformedAt),
 		Part:           part,
+		WarrantyID:     view.WarrantyID,
+		WarrantyKind:   warrantyKindValue(view.WarrantyKind),
+		WarrantyValid:  view.WarrantyValid,
 	}
+}
+
+func warrantyKindValue(kind *domain.WarrantyKind) *string {
+	if kind == nil {
+		return nil
+	}
+	value := string(*kind)
+	return &value
 }
