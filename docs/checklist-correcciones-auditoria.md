@@ -217,13 +217,13 @@
 
 ### D. Bootstrap de la base de datos del stack
 
-- [ ] **[D1]** Añadir servicio `db-init` al `docker-compose.yml` raíz
+- [~] **[D1]** Añadir servicio `db-init` al `docker-compose.yml` raíz
   - **Qué:** hoy el stack arranca con la BD vacía (no aplica migraciones ni seed, contradiciendo el criterio del PRD). Agregar un servicio one-shot que aplique `migrations/*.up.sql` + seed (idempotente) antes de que el backend dependa de datos.
   - **Archivos:**
     - `docker-compose.yml` (servicio `db-init` con imagen `mysql:8.0`, `depends_on: db: service_healthy`, mounts de `./database/migrations` y `./database/seed`, y un script que setea las variables de entorno del seed, incluidas las 3 contraseñas)
     - `database/seed/0001_seed_bootstrap.sql` y `.env.example` (coordinado con B1)
   - **Verificación:** `docker compose down -v && docker compose up -d --build` deja la BD con tablas, usuario admin y los 2 técnicos.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Persona 2 (coordinación B1) | **Estado:** en curso
 
 - [ ] **[D2]** Aplicar migraciones + seed al stack actual (`proyecto-db-1`) y regenerar contraseñas
   - **Qué:** dejar la instancia que ya corre en un estado operativo con las nuevas contraseñas únicas.
@@ -281,6 +281,7 @@
 | 2026-09-18 | IA (asistente) | [D2][parcial] | Aplicación manual al stack actual: se ejecutaron las 11 migraciones y la seed sobre `proyecto-db-1` (BD quedó con tablas + `admin`/`jperez`/`lramirez`). El primer intento quedó con el hash truncado (`$` interpolado por PowerShell) y se re-aplicó con el hash íntegro. Login `admin` y `jperez` con `Admin2026*` → `200`. Las contraseñas únicas por usuario quedan pendientes (B1). | `database/migrations/*.up.sql`, `database/seed/0001_seed_bootstrap.sql` | `SHOW TABLES` (11), `SELECT username, role FROM user` (3), `POST /api/session` → `200` |
 | 2026-09-18 | IA (asistente) | [E1] | Suite backend verde tras A1–A7: `go test ./...`, `go vet ./...` y `gofmt -l` sin salida dentro de `golang:1.25-alpine` (Go no está instalado en el host). | — | `docker run --rm -v ...:/src -w /src golang:1.25-alpine sh -c "gofmt -w . && gofmt -l . && go vet ./... && go test ./..."` → OK |
 | 2026-09-18 | Persona 2 | [B1][parcial] | El seed dejó de reutilizar el hash del administrador: cada técnico recibe una variable bcrypt propia. El runner enlaza ambas variables y las aserciones verifican que los tres hashes sean distintos; se documentaron `Tech2026#1` y `Tech2026#2`. | `database/seed/0001_seed_bootstrap.sql`, `database/.env.example`, `database/scripts/run_validation.mjs`, `database/tests/schema_assertions.mjs` | Hashes verificados con bcrypt y `git diff --check` OK; falta ejecutar `node scripts/run_validation.mjs` y confirmar login/BD porque Node.js y Docker no están disponibles en el host. |
+| 2026-09-18 | Persona 2 | [D1][parcial] | Se agregó `db-init` al compose raíz: espera a MySQL, aplica las 11 migraciones, carga el seed con hashes independientes y el backend espera la finalización exitosa del inicializador. Las migraciones son reejecutables mediante `CREATE TABLE IF NOT EXISTS`. | `docker-compose.yml` | `git diff --check` OK; falta ejecutar `docker compose --env-file database/.env.example up -d --build` en un equipo con Docker y comprobar los tres logins. |
 
 _(Agregar aquí cada corrección completada.)_
 
