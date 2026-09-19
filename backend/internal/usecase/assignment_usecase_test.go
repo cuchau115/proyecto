@@ -61,6 +61,14 @@ func (f *fakeOrderRepository) FindByID(_ context.Context, id string) (domain.Ser
 	return found, nil
 }
 
+func (f *fakeOrderRepository) FindSummary(ctx context.Context, id string) (usecase.ServiceOrderSummary, error) {
+	order, err := f.FindByID(ctx, id)
+	if err != nil {
+		return usecase.ServiceOrderSummary{}, err
+	}
+	return usecase.ServiceOrderSummary{Order: order}, nil
+}
+
 func (f *fakeOrderRepository) List(_ context.Context, _ string) ([]usecase.ServiceOrderSummary, error) {
 	listing := make([]usecase.ServiceOrderSummary, 0, len(f.order))
 	for _, order := range f.order {

@@ -17,7 +17,10 @@ export function ServiceOrderPage() {
   const { isAdministrator } = useSession();
   const [status, setStatus] = useState('');
   const order = useAsyncData(() => listServiceOrder(token, status), [token, status]);
-  const vehicle = useAsyncData(() => listVehicle(token), [token]);
+  const vehicle = useAsyncData(
+    () => (isAdministrator ? listVehicle(token) : Promise.resolve([])),
+    [token, isAdministrator],
+  );
   const [vehicleId, setVehicleId] = useState('');
   const [reportedFailure, setReportedFailure] = useState('');
   const [formError, setFormError] = useState('');

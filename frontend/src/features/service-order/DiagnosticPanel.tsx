@@ -11,10 +11,11 @@ import { formatDateTime } from '../../shared/format';
 
 interface DiagnosticPanelProps {
   serviceOrderId: string;
+  delivered: boolean;
   onChange: () => void;
 }
 
-export function DiagnosticPanel({ serviceOrderId, onChange }: DiagnosticPanelProps) {
+export function DiagnosticPanel({ serviceOrderId, delivered, onChange }: DiagnosticPanelProps) {
   const token = useToken();
   const { isAdministrator } = useSession();
   const diagnostic = useAsyncData(
@@ -78,7 +79,9 @@ export function DiagnosticPanel({ serviceOrderId, onChange }: DiagnosticPanelPro
         </div>
       ) : null}
 
-      {isAdministrator ? (
+      {delivered ? (
+        <p className="state-message">La orden ya fue entregada.</p>
+      ) : isAdministrator ? (
         <p className="state-message">Solo el tecnico asignado puede escribir el diagnostico.</p>
       ) : (
         <form onSubmit={submit} noValidate>

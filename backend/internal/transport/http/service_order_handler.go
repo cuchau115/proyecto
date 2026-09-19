@@ -105,12 +105,12 @@ func (h ServiceOrderHandler) Find(writer http.ResponseWriter, request *http.Requ
 		failure(writer, err)
 		return
 	}
-	order, err := h.order.Find(request.Context(), orderID)
+	summary, err := h.order.FindSummary(request.Context(), orderID)
 	if err != nil {
 		failure(writer, err)
 		return
 	}
-	respond(writer, http.StatusOK, toServiceOrderResponse(order, "", ""))
+	respond(writer, http.StatusOK, toServiceOrderResponse(summary.Order, summary.VehiclePlate, summary.TechnicianName))
 }
 
 // ListTransition returns the status history of an order.

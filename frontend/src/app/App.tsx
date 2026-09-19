@@ -29,13 +29,48 @@ export function App() {
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/customers" element={<CustomerPage />} />
-            <Route path="/vehicles" element={<VehiclePage />} />
-            <Route path="/vehicles/:vehicleId/timeline" element={<VehicleTimelinePage />} />
-            <Route path="/technicians" element={<TechnicianPage />} />
+            <Route
+              path="/customers"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRATOR">
+                  <CustomerPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vehicles"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRATOR">
+                  <VehiclePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vehicles/:vehicleId/timeline"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRATOR">
+                  <VehicleTimelinePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technicians"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRATOR">
+                  <TechnicianPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/service-orders" element={<ServiceOrderPage />} />
             <Route path="/service-orders/:serviceOrderId" element={<ServiceOrderDetailPage />} />
-            <Route path="/warranties" element={<WarrantyPage />} />
+            <Route
+              path="/warranties"
+              element={
+                <ProtectedRoute requiredRole="ADMINISTRATOR">
+                  <WarrantyPage />
+                </ProtectedRoute>
+              }
+            />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

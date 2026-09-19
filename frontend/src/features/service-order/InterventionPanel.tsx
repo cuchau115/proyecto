@@ -14,12 +14,13 @@ import { formatDateTime } from '../../shared/format';
 
 interface InterventionPanelProps {
   serviceOrderId: string;
+  delivered: boolean;
   onChange: () => void;
 }
 
 const EMPTY_PART: PartUsage = { partName: '', quantity: 1 };
 
-export function InterventionPanel({ serviceOrderId, onChange }: InterventionPanelProps) {
+export function InterventionPanel({ serviceOrderId, delivered, onChange }: InterventionPanelProps) {
   const token = useToken();
   const { isAdministrator } = useSession();
   const intervention = useAsyncData(
@@ -87,7 +88,9 @@ export function InterventionPanel({ serviceOrderId, onChange }: InterventionPane
       <ErrorBanner message={error} />
       <SuccessBanner message={confirmation} />
 
-      {isAdministrator ? null : (
+      {delivered ? (
+        <p className="state-message">La orden ya fue entregada.</p>
+      ) : isAdministrator ? null : (
         <form onSubmit={submit} noValidate>
           <div className="form-grid">
             <div className="field">
@@ -188,7 +191,7 @@ export function InterventionPanel({ serviceOrderId, onChange }: InterventionPane
                   </td>
                   <td>{formatDateTime(item.performedAt)}</td>
                   <td>
-                    {isAdministrator ? (
+                    {isAdministrator && !delivered ? (
                       <button
                         type="button"
                         className="button button--secondary"

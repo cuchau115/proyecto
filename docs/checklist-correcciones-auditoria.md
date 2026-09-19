@@ -182,38 +182,38 @@
 
 ### C. Frontend — Guardias de ruta y UX (Prioridad 3)
 
-- [ ] **[C1]** Role guard en rutas privadas de admin
+- [x] **[C1]** Role guard en rutas privadas de admin
   - **Qué:** aunque la barra de navegación oculta esas opciones, un técnico puede escribir la URL a mano y ver la pantalla.
   - **Archivos:**
     - `frontend/src/app/ProtectedRoute.tsx` (prop `requiredRole`; redirige a `/dashboard` si el rol no coincide)
     - `frontend/src/app/App.tsx` (aplicar `requiredRole="ADMINISTRATOR"` en `/customers`, `/vehicles`, `/vehicles/:vehicleId/timeline`, `/technicians`, `/warranties`)
   - **Verificación:** `jperez` escribiendo `/customers` es redirigido a `/dashboard`; `admin` accede.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
-- [ ] **[C2]** No llamar endpoints admin-only desde pantallas de técnico
+- [x] **[C2]** No llamar endpoints admin-only desde pantallas de técnico
   - **Qué:** con A1/A3, endpoints como `GET /api/vehicle` y `GET /api/technician` quedan restringidos; las pantallas de técnico no deben lanzarlos.
   - **Archivos:**
     - `frontend/src/features/service-order/ServiceOrderPage.tsx` (`listVehicle` solo si `isAdministrator`)
     - `frontend/src/features/service-order/AssignmentPanel.tsx` (`listTechnician` solo si `isAdministrator`; el técnico ve el mensaje de asignación, ver C4)
   - **Verificación:** el panel de "Ordenes" de un técnico no muestra errores `403` al cargar.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
-- [ ] **[C3]** Ocultar formularios de diagnóstico/intervención en órdenes entregadas
+- [x] **[C3]** Ocultar formularios de diagnóstico/intervención en órdenes entregadas
   - **Qué:** en el detalle de una orden `DELIVERED` no deben aparecer los botones/forms de escritura.
   - **Archivos:**
     - `frontend/src/features/service-order/ServiceOrderDetailPage.tsx` (pasar `delivered` a los paneles)
     - `frontend/src/features/service-order/DiagnosticPanel.tsx` e `InterventionPanel.tsx` (prop `delivered`; no renderizar el form, mostrar "La orden ya fue entregada.")
   - **Verificación:** abrir OS-0001 (entregada) con cualquier rol → sin formularios de escritura.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
-- [ ] **[C4]** Mostrar el técnico asignado en el detalle (y en el panel de asignación para técnicos)
+- [x] **[C4]** Mostrar el técnico asignado en el detalle (y en el panel de asignación para técnicos)
   - **Qué:** con la lectura estricta, el técnico necesita saber a quién pertenece su orden; el detalle hoy no trae `technicianName`.
   - **Archivos:**
     - `backend/internal/repository/service_order_repository.go` (método `FindSummary` con placa + nombre del técnico)
     - `backend/internal/transport/http/service_order_handler.go` (`Find` usando el summary)
     - `frontend/src/features/service-order/AssignmentPanel.tsx` (para no-admin: mostrar el técnico asignado en vez de la tabla)
   - **Verificación:** el detalle de una orden muestra "Técnico: Juan Perez" para el técnico asignado y el admin.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
 ### D. Bootstrap de la base de datos del stack
 
@@ -280,6 +280,10 @@
 | 2026-09-18 | IA (asistente) | [B3] | `ListTransition` ordena por `changed_at, id` (desempate determinístico cuando dos transiciones comparten marca de tiempo). | `backend/internal/repository/service_order_repository.go` | `go vet` OK (verificación E2E en E3) |
 | 2026-09-18 | IA (asistente) | [D2][parcial] | Aplicación manual al stack actual: se ejecutaron las 11 migraciones y la seed sobre `proyecto-db-1` (BD quedó con tablas + `admin`/`jperez`/`lramirez`). El primer intento quedó con el hash truncado (`$` interpolado por PowerShell) y se re-aplicó con el hash íntegro. Login `admin` y `jperez` con `Admin2026*` → `200`. Las contraseñas únicas por usuario quedan pendientes (B1). | `database/migrations/*.up.sql`, `database/seed/0001_seed_bootstrap.sql` | `SHOW TABLES` (11), `SELECT username, role FROM user` (3), `POST /api/session` → `200` |
 | 2026-09-18 | IA (asistente) | [E1] | Suite backend verde tras A1–A7: `go test ./...`, `go vet ./...` y `gofmt -l` sin salida dentro de `golang:1.25-alpine` (Go no está instalado en el host). | — | `docker run --rm -v ...:/src -w /src golang:1.25-alpine sh -c "gofmt -w . && gofmt -l . && go vet ./... && go test ./..."` → OK |
+| 2026-09-18 | Julian Camargo | [C1] | `ProtectedRoute` admite el rol requerido y redirige al panel a quien no lo tenga; se protegieron rutas de clientes, vehículos, historial, técnicos y garantías. Se añadieron pruebas de técnico rechazado y administrador autorizado. | `frontend/src/app/ProtectedRoute.tsx`, `App.tsx`, `ProtectedRoute.test.tsx` | `docker run --rm -v ...:/source:ro node:22-alpine sh -c "... && npm test"` → 24 pruebas OK |
+| 2026-09-18 | Julian Camargo | [C2] | Las cargas de vehículos y técnicos quedan condicionadas al rol administrador. Para técnicos, el panel de asignación solo informa que la asignación corresponde al jefe y no consulta el catálogo protegido. | `frontend/src/features/service-order/ServiceOrderPage.tsx`, `AssignmentPanel.tsx`, `ServiceOrderPage.test.tsx`, `AssignmentPanel.test.tsx` | Pruebas modificadas: 8/8 OK; `tsc --noEmit` inició correctamente en contenedor Node aislado |
+| 2026-09-18 | Julian Camargo | [C3] | El detalle deriva `delivered` desde el estado de la orden y los paneles de diagnóstico e intervención ocultan sus controles de escritura y emisión de garantía, mostrando el aviso de entrega. | `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `DiagnosticPanel.tsx`, `InterventionPanel.tsx`, `DeliveryLockPanels.test.tsx` | Prueba específica de paneles entregados ejecutada en contenedor Node aislado |
+| 2026-09-18 | Julian Camargo | [C4] | Nuevo read-model `FindSummary` une orden, placa y técnico activo. El detalle muestra el técnico y, para técnicos, el panel de asignación muestra el nombre asignado sin consultar el catálogo protegido. | `backend/internal/repository/service_order_repository.go`, `backend/internal/usecase/service_order_usecase.go`, `backend/internal/transport/http/service_order_handler.go`, pruebas Go; `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `AssignmentPanel.tsx` | `docker run ... golang:1.25-alpine sh -c "gofmt -w . && go test ./..."` → suite ejecutada sin fallos reportados |
 
 _(Agregar aquí cada corrección completada.)_
 

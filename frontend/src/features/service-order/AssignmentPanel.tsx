@@ -13,13 +13,17 @@ import { useSession, useToken } from '../../shared/SessionContext';
 
 interface AssignmentPanelProps {
   serviceOrderId: string;
+  technicianName: string;
   onChange: () => void;
 }
 
-export function AssignmentPanel({ serviceOrderId, onChange }: AssignmentPanelProps) {
+export function AssignmentPanel({ serviceOrderId, technicianName, onChange }: AssignmentPanelProps) {
   const token = useToken();
   const { isAdministrator } = useSession();
-  const technician = useAsyncData(() => listTechnician(token), [token]);
+  const technician = useAsyncData(
+    () => (isAdministrator ? listTechnician(token) : Promise.resolve([])),
+    [token, isAdministrator],
+  );
   const [technicianId, setTechnicianId] = useState('');
   const [error, setError] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -42,6 +46,15 @@ export function AssignmentPanel({ serviceOrderId, onChange }: AssignmentPanelPro
     }
   };
 
+  if (!isAdministrator) {
+    return (
+      <section className="card">
+        <h3 className="card__title">Asignacion</h3>
+        <p className="state-message">Técnico asignado: {technicianName || 'Sin asignar'}.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="card">
       <h3 className="card__title">Asignacion</h3>
@@ -51,36 +64,32 @@ export function AssignmentPanel({ serviceOrderId, onChange }: AssignmentPanelPro
         empty={(technician.data ?? []).length === 0}
         emptyMessage="No hay tecnicos registrados."
       >
-        {isAdministrator ? (
-          <form onSubmit={submit} noValidate>
-            <ErrorBanner message={error} />
-            <SuccessBanner message={confirmation} />
-            <div className="field">
-              <label className="field__label" htmlFor="technicianId">
-                Tecnico
-              </label>
-              <select
-                className="field__input"
-                id="technicianId"
-                value={technicianId}
-                onChange={(event) => setTechnicianId(event.target.value)}
-                required
-              >
-                <option value="">Seleccione un tecnico</option>
-                {(technician.data ?? []).map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.fullName + (item.busy ? ' (ocupado)' : '')}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button type="submit" className="button button--primary" disabled={sending}>
-              {sending ? 'Asignando...' : 'Asignar tecnico'}
-            </button>
-          </form>
-        ) : (
-          <p className="state-message">Solo el jefe de taller asigna tecnicos.</p>
-        )}
+        <form onSubmit={submit} noValidate>
+          <ErrorBanner message={error} />
+          <SuccessBanner message={confirmation} />
+          <div className="field">
+            <label className="field__label" htmlFor="technicianId">
+              Tecnico
+            </label>
+            <select
+              className="field__input"
+              id="technicianId"
+              value={technicianId}
+              onChange={(event) => setTechnicianId(event.target.value)}
+              required
+            >
+              <option value="">Seleccione un tecnico</option>
+              {(technician.data ?? []).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.fullName + (item.busy ? ' (ocupado)' : '')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="button button--primary" disabled={sending}>
+            {sending ? 'Asignando...' : 'Asignar tecnico'}
+          </button>
+        </form>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

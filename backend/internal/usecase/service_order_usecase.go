@@ -20,6 +20,7 @@ type ServiceOrderSummary struct {
 type ServiceOrderRepository interface {
 	Save(ctx context.Context, order domain.ServiceOrder) error
 	FindByID(ctx context.Context, id string) (domain.ServiceOrder, error)
+	FindSummary(ctx context.Context, id string) (ServiceOrderSummary, error)
 	List(ctx context.Context, status string) ([]ServiceOrderSummary, error)
 	ListByTechnician(ctx context.Context, technicianID, status string) ([]ServiceOrderSummary, error)
 	ListByVehicle(ctx context.Context, vehicleID string) ([]domain.ServiceOrder, error)
@@ -100,6 +101,11 @@ func (s ServiceOrderUseCase) List(ctx context.Context, status, actorUserID strin
 // Find returns one order by its identifier.
 func (s ServiceOrderUseCase) Find(ctx context.Context, orderID string) (domain.ServiceOrder, error) {
 	return s.order.FindByID(ctx, orderID)
+}
+
+// FindSummary returns an order with the vehicle plate and active technician.
+func (s ServiceOrderUseCase) FindSummary(ctx context.Context, orderID string) (ServiceOrderSummary, error) {
+	return s.order.FindSummary(ctx, orderID)
 }
 
 // ListTransition returns the status history of an order.
