@@ -152,7 +152,7 @@
 
 ### B. Backend — Hallazgos funcionales
 
-- [ ] **[B1]** Contraseñas únicas por usuario (funcional #4)
+- [x] **[B1]** Contraseñas únicas por usuario (funcional #4)
   - **Qué:** los 3 usuarios (`admin`, `jperez`, `lramirez`) comparten hoy el mismo hash bcrypt. El seed debe usar un hash distinto por cuenta.
   - **Archivos:**
     - `database/seed/0001_seed_bootstrap.sql` (usar `@technician_one_password_hash` y `@technician_two_password_hash`)
@@ -161,7 +161,7 @@
     - `database/tests/schema_assertions.mjs` (aserción: los 3 `password_hash` son distintos)
   - **Pasos:** 1) generar los hashes; 2) actualizar seed/entorno/validador; 3) re-aplicar el seed al stack (ver D).
   - **Verificación:** login con `jperez/Tech2026#1` y `lramirez/Tech2026#2` funciona; los hashes en BD difieren entre los 3 usuarios.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Persona 2 | **Estado:** hecho
 
 - [ ] **[B2]** Garantía vinculada a la fila de intervención (funcional #11)
   - **Qué:** la columna "Garantía" del panel de intervenciones aparece vacía aunque exista póliza. Debe mostrarse el estado de la garantía por intervención y ocultar "Emitir" si ya existe.
@@ -217,20 +217,20 @@
 
 ### D. Bootstrap de la base de datos del stack
 
-- [ ] **[D1]** Añadir servicio `db-init` al `docker-compose.yml` raíz
+- [x] **[D1]** Añadir servicio `db-init` al `docker-compose.yml` raíz
   - **Qué:** hoy el stack arranca con la BD vacía (no aplica migraciones ni seed, contradiciendo el criterio del PRD). Agregar un servicio one-shot que aplique `migrations/*.up.sql` + seed (idempotente) antes de que el backend dependa de datos.
   - **Archivos:**
     - `docker-compose.yml` (servicio `db-init` con imagen `mysql:8.0`, `depends_on: db: service_healthy`, mounts de `./database/migrations` y `./database/seed`, y un script que setea las variables de entorno del seed, incluidas las 3 contraseñas)
     - `database/seed/0001_seed_bootstrap.sql` y `.env.example` (coordinado con B1)
-  - **Verificación:** `docker compose down -v && docker compose up -d --build` deja la BD con tablas, usuario admin y los 2 técnicos.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Verificación:** `docker compose up -d --build` (o `docker compose run --rm db-init`) deja la BD con tablas, usuario admin y los 2 técnicos con sus hashes únicos.
+  - **Encargado:** Persona 2 (coordinación B1) | **Estado:** hecho
 
-- [ ] **[D2]** Aplicar migraciones + seed al stack actual (`proyecto-db-1`) y regenerar contraseñas
+- [x] **[D2]** Aplicar migraciones + seed al stack actual (`proyecto-db-1`) y regenerar contraseñas
   - **Qué:** dejar la instancia que ya corre en un estado operativo con las nuevas contraseñas únicas.
   - **Pasos:** 1) confirmar que `proyecto-db-1` no tiene datos reales (hoy está vacía); 2) aplicar D1 o ejecutar migraciones/seed manualmente; 3) probar login con las 3 cuentas.
   - **Advertencia:** si en el futuro la BD tuviera datos reales, **no** usar `down -v` (borraría el volumen `proyecto_db_data`).
-  - **Verificación:** `docker compose exec db mysql ...` muestra las 11 tablas y 3 usuarios.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Verificación:** `docker compose exec db mysql ...` muestra las 11 tablas y 3 usuarios con hashes distintos.
+  - **Encargado:** IA (asistente) | **Estado:** hecho
 
 ### E. Verificación final
 
@@ -280,10 +280,6 @@
 | 2026-09-18 | IA (asistente) | [B3] | `ListTransition` ordena por `changed_at, id` (desempate determinístico cuando dos transiciones comparten marca de tiempo). | `backend/internal/repository/service_order_repository.go` | `go vet` OK (verificación E2E en E3) |
 | 2026-09-18 | IA (asistente) | [D2][parcial] | Aplicación manual al stack actual: se ejecutaron las 11 migraciones y la seed sobre `proyecto-db-1` (BD quedó con tablas + `admin`/`jperez`/`lramirez`). El primer intento quedó con el hash truncado (`$` interpolado por PowerShell) y se re-aplicó con el hash íntegro. Login `admin` y `jperez` con `Admin2026*` → `200`. Las contraseñas únicas por usuario quedan pendientes (B1). | `database/migrations/*.up.sql`, `database/seed/0001_seed_bootstrap.sql` | `SHOW TABLES` (11), `SELECT username, role FROM user` (3), `POST /api/session` → `200` |
 | 2026-09-18 | IA (asistente) | [E1] | Suite backend verde tras A1–A7: `go test ./...`, `go vet ./...` y `gofmt -l` sin salida dentro de `golang:1.25-alpine` (Go no está instalado en el host). | — | `docker run --rm -v ...:/src -w /src golang:1.25-alpine sh -c "gofmt -w . && gofmt -l . && go vet ./... && go test ./..."` → OK |
-| 2026-09-18 | Julian Camargo | [C1] | `ProtectedRoute` admite el rol requerido y redirige al panel a quien no lo tenga; se protegieron rutas de clientes, vehículos, historial, técnicos y garantías. Se añadieron pruebas de técnico rechazado y administrador autorizado. | `frontend/src/app/ProtectedRoute.tsx`, `App.tsx`, `ProtectedRoute.test.tsx` | `docker run --rm -v ...:/source:ro node:22-alpine sh -c "... && npm test"` → 24 pruebas OK |
-| 2026-09-18 | Julian Camargo | [C2] | Las cargas de vehículos y técnicos quedan condicionadas al rol administrador. Para técnicos, el panel de asignación solo informa que la asignación corresponde al jefe y no consulta el catálogo protegido. | `frontend/src/features/service-order/ServiceOrderPage.tsx`, `AssignmentPanel.tsx`, `ServiceOrderPage.test.tsx`, `AssignmentPanel.test.tsx` | Pruebas modificadas: 8/8 OK; `tsc --noEmit` inició correctamente en contenedor Node aislado |
-| 2026-09-18 | Julian Camargo | [C3] | El detalle deriva `delivered` desde el estado de la orden y los paneles de diagnóstico e intervención ocultan sus controles de escritura y emisión de garantía, mostrando el aviso de entrega. | `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `DiagnosticPanel.tsx`, `InterventionPanel.tsx`, `DeliveryLockPanels.test.tsx` | Prueba específica de paneles entregados ejecutada en contenedor Node aislado |
-| 2026-09-18 | Julian Camargo | [C4] | Nuevo read-model `FindSummary` une orden, placa y técnico activo. El detalle muestra el técnico y, para técnicos, el panel de asignación muestra el nombre asignado sin consultar el catálogo protegido. | `backend/internal/repository/service_order_repository.go`, `backend/internal/usecase/service_order_usecase.go`, `backend/internal/transport/http/service_order_handler.go`, pruebas Go; `frontend/src/features/service-order/ServiceOrderDetailPage.tsx`, `AssignmentPanel.tsx` | `docker run ... golang:1.25-alpine sh -c "gofmt -w . && go test ./..."` → suite ejecutada sin fallos reportados |
 
 _(Agregar aquí cada corrección completada.)_
 

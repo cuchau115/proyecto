@@ -5,9 +5,9 @@
 -- variable that the caller sets in the same session before piping this file:
 --   @admin_username, @admin_full_name, @admin_password_hash,
 --   @technician_one_username, @technician_one_full_name,
---   @technician_one_specialty,
+--   @technician_one_specialty, @technician_one_password_hash,
 --   @technician_two_username, @technician_two_full_name,
---   @technician_two_specialty
+--   @technician_two_specialty, @technician_two_password_hash
 -- The validation runner reads them from .env.example; a real deployment reads
 -- them from its own environment. @admin_password_hash is a bcrypt hash: the
 -- plain text password never reaches the database.
@@ -32,26 +32,26 @@ INSERT INTO `user` (id, username, password_hash, role, full_name, created_at)
 VALUES (
   '22222222-2222-4222-8222-222222222222',
   @technician_one_username,
-  @admin_password_hash,
+  @technician_one_password_hash,
   'TECHNICIAN',
   @technician_one_full_name,
   CURRENT_TIMESTAMP
 )
 ON DUPLICATE KEY UPDATE
-  password_hash = @admin_password_hash,
+  password_hash = @technician_one_password_hash,
   full_name = @technician_one_full_name;
 
 INSERT INTO `user` (id, username, password_hash, role, full_name, created_at)
 VALUES (
   '33333333-3333-4333-8333-333333333333',
   @technician_two_username,
-  @admin_password_hash,
+  @technician_two_password_hash,
   'TECHNICIAN',
   @technician_two_full_name,
   CURRENT_TIMESTAMP
 )
 ON DUPLICATE KEY UPDATE
-  password_hash = @admin_password_hash,
+  password_hash = @technician_two_password_hash,
   full_name = @technician_two_full_name;
 
 INSERT INTO technician (id, user_id, specialty, created_at)

@@ -145,9 +145,11 @@ function applySeed() {
     ['technician_one_username', requiredEnv('TECHNICIAN_ONE_USERNAME')],
     ['technician_one_full_name', requiredEnv('TECHNICIAN_ONE_FULL_NAME')],
     ['technician_one_specialty', requiredEnv('TECHNICIAN_ONE_SPECIALTY')],
+    ['technician_one_password_hash', requiredEnv('TECHNICIAN_ONE_PASSWORD_HASH')],
     ['technician_two_username', requiredEnv('TECHNICIAN_TWO_USERNAME')],
     ['technician_two_full_name', requiredEnv('TECHNICIAN_TWO_FULL_NAME')],
     ['technician_two_specialty', requiredEnv('TECHNICIAN_TWO_SPECIALTY')],
+    ['technician_two_password_hash', requiredEnv('TECHNICIAN_TWO_PASSWORD_HASH')],
   ];
   const header = binding
     .map((entry) => 'SET @' + entry[0] + ' = ' + sqlLiteral(entry[1]) + ';')
