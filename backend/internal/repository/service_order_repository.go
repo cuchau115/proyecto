@@ -65,6 +65,26 @@ func (r ServiceOrderRepository) FindByID(ctx context.Context, id string) (domain
 	return order, nil
 }
 
+// FindSummary reads one order with its vehicle plate and active technician.
+func (r ServiceOrderRepository) FindSummary(ctx context.Context, id string) (usecase.ServiceOrderSummary, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
+	rows, err := r.database.QueryContext(queryCtx, serviceOrderSummarySelect+" WHERE so.id = ?", id)
+	if err != nil {
+		return usecase.ServiceOrderSummary{}, translate(err)
+	}
+	defer func() { _ = rows.Close() }()
+	listed, err := scanSummaries(rows)
+	if err != nil {
+		return usecase.ServiceOrderSummary{}, err
+	}
+	if len(listed) == 0 {
+		return usecase.ServiceOrderSummary{}, domain.ErrNotFound
+	}
+	return listed[0], nil
+}
+
 // List returns the orders, optionally filtered by a lifecycle status.
 func (r ServiceOrderRepository) List(ctx context.Context, status string) ([]usecase.ServiceOrderSummary, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, r.timeout)

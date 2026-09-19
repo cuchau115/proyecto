@@ -182,38 +182,38 @@
 
 ### C. Frontend — Guardias de ruta y UX (Prioridad 3)
 
-- [ ] **[C1]** Role guard en rutas privadas de admin
+- [x] **[C1]** Role guard en rutas privadas de admin
   - **Qué:** aunque la barra de navegación oculta esas opciones, un técnico puede escribir la URL a mano y ver la pantalla.
   - **Archivos:**
     - `frontend/src/app/ProtectedRoute.tsx` (prop `requiredRole`; redirige a `/dashboard` si el rol no coincide)
     - `frontend/src/app/App.tsx` (aplicar `requiredRole="ADMINISTRATOR"` en `/customers`, `/vehicles`, `/vehicles/:vehicleId/timeline`, `/technicians`, `/warranties`)
   - **Verificación:** `jperez` escribiendo `/customers` es redirigido a `/dashboard`; `admin` accede.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
-- [ ] **[C2]** No llamar endpoints admin-only desde pantallas de técnico
+- [x] **[C2]** No llamar endpoints admin-only desde pantallas de técnico
   - **Qué:** con A1/A3, endpoints como `GET /api/vehicle` y `GET /api/technician` quedan restringidos; las pantallas de técnico no deben lanzarlos.
   - **Archivos:**
     - `frontend/src/features/service-order/ServiceOrderPage.tsx` (`listVehicle` solo si `isAdministrator`)
     - `frontend/src/features/service-order/AssignmentPanel.tsx` (`listTechnician` solo si `isAdministrator`; el técnico ve el mensaje de asignación, ver C4)
   - **Verificación:** el panel de "Ordenes" de un técnico no muestra errores `403` al cargar.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
-- [ ] **[C3]** Ocultar formularios de diagnóstico/intervención en órdenes entregadas
+- [x] **[C3]** Ocultar formularios de diagnóstico/intervención en órdenes entregadas
   - **Qué:** en el detalle de una orden `DELIVERED` no deben aparecer los botones/forms de escritura.
   - **Archivos:**
     - `frontend/src/features/service-order/ServiceOrderDetailPage.tsx` (pasar `delivered` a los paneles)
     - `frontend/src/features/service-order/DiagnosticPanel.tsx` e `InterventionPanel.tsx` (prop `delivered`; no renderizar el form, mostrar "La orden ya fue entregada.")
   - **Verificación:** abrir OS-0001 (entregada) con cualquier rol → sin formularios de escritura.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
-- [ ] **[C4]** Mostrar el técnico asignado en el detalle (y en el panel de asignación para técnicos)
+- [x] **[C4]** Mostrar el técnico asignado en el detalle (y en el panel de asignación para técnicos)
   - **Qué:** con la lectura estricta, el técnico necesita saber a quién pertenece su orden; el detalle hoy no trae `technicianName`.
   - **Archivos:**
     - `backend/internal/repository/service_order_repository.go` (método `FindSummary` con placa + nombre del técnico)
     - `backend/internal/transport/http/service_order_handler.go` (`Find` usando el summary)
     - `frontend/src/features/service-order/AssignmentPanel.tsx` (para no-admin: mostrar el técnico asignado en vez de la tabla)
   - **Verificación:** el detalle de una orden muestra "Técnico: Juan Perez" para el técnico asignado y el admin.
-  - **Encargado:** _(libre)_ | **Estado:** pendiente
+  - **Encargado:** Julian Camargo | **Estado:** hecho
 
 ### D. Bootstrap de la base de datos del stack
 

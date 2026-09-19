@@ -60,6 +60,9 @@ export function ServiceOrderDetailPage() {
           <p>
             <strong>Falla reportada:</strong> {current?.reportedFailure}
           </p>
+          <p>
+            <strong>Técnico:</strong> {current?.technicianName || 'Sin asignar'}
+          </p>
           <p className="timeline__date">Ingreso: {formatDateTime(current?.receivedAt ?? '')}</p>
           <ErrorBanner message={actionError} />
           <SuccessBanner message={confirmation} />
@@ -77,9 +80,21 @@ export function ServiceOrderDetailPage() {
         </section>
 
         <div className="panel-stack">
-          <AssignmentPanel serviceOrderId={serviceOrderId} onChange={() => order.reload()} />
-          <DiagnosticPanel serviceOrderId={serviceOrderId} onChange={() => order.reload()} />
-          <InterventionPanel serviceOrderId={serviceOrderId} onChange={() => order.reload()} />
+          <AssignmentPanel
+            serviceOrderId={serviceOrderId}
+            technicianName={current?.technicianName ?? ''}
+            onChange={() => order.reload()}
+          />
+          <DiagnosticPanel
+            serviceOrderId={serviceOrderId}
+            delivered={current?.status === 'DELIVERED'}
+            onChange={() => order.reload()}
+          />
+          <InterventionPanel
+            serviceOrderId={serviceOrderId}
+            delivered={current?.status === 'DELIVERED'}
+            onChange={() => order.reload()}
+          />
           <StatusHistoryPanel serviceOrderId={serviceOrderId} refreshToken={historyToken} />
         </div>
       </DataState>

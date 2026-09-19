@@ -31,6 +31,20 @@ function storeAdministratorSession() {
   );
 }
 
+function storeTechnicianSession() {
+  window.localStorage.setItem(
+    'workshop.session',
+    JSON.stringify({
+      token: 'technician-token',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      userId: 'user-2',
+      username: 'jperez',
+      fullName: 'Juan Perez',
+      role: 'TECHNICIAN',
+    }),
+  );
+}
+
 function stubApi(order: unknown[]) {
   vi.stubGlobal(
     'fetch',
@@ -91,5 +105,18 @@ describe('service order screen', () => {
 
     expect(await screen.findByLabelText('Falla reportada')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Registrar ingreso' })).toBeInTheDocument();
+  });
+
+  it('does not request the vehicle catalog for a technician', async () => {
+    storeTechnicianSession();
+    stubApi([ORDER]);
+    renderOrders();
+
+    expect(await screen.findByText('OS-0001')).toBeInTheDocument();
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      '/api/service-order',
+      expect.anything(),
+    );
+    expect(vi.mocked(fetch)).not.toHaveBeenCalledWith('/api/vehicle', expect.anything());
   });
 });
