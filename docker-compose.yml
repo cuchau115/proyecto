@@ -38,6 +38,8 @@ services:
     volumes:
       - ./database/migrations:/migrations:ro
       - ./database/seed:/seed:ro
+    networks:
+      - app-network
     depends_on:
       db:
         condition: service_healthy
