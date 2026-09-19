@@ -236,7 +236,7 @@
 
 - [x] **[E1]** Tests de backend
   - `cd backend && go test ./...` — incluir tests nuevos: acceso por rol (A1), lectura estricta (A2/A3), `Advance` asignado/no asignado (A4), bloqueo por `DELIVERED` (A5), rate limiter 5→429 (A6), sanitización `<script>`→400 (A7).
-- [ ] **[E2]** Tests de frontend
+- [x] **[E2]** Tests de frontend
   - `cd frontend && npm test` — incluir tests nuevos: role guard (C1), formularios ocultos en entregada (C3), badge de garantía (B2).
 - [ ] **[E3]** E2E manual contra el stack
   - Levantar `docker compose up -d --build`; verificar los 3 puertos (frontend :80, backend :8080, MySQL :3306) y probar con tokens:
@@ -280,6 +280,12 @@
 | 2026-09-18 | IA (asistente) | [B3] | `ListTransition` ordena por `changed_at, id` (desempate determinístico cuando dos transiciones comparten marca de tiempo). | `backend/internal/repository/service_order_repository.go` | `go vet` OK (verificación E2E en E3) |
 | 2026-09-18 | IA (asistente) | [D2][parcial] | Aplicación manual al stack actual: se ejecutaron las 11 migraciones y la seed sobre `proyecto-db-1` (BD quedó con tablas + `admin`/`jperez`/`lramirez`). El primer intento quedó con el hash truncado (`$` interpolado por PowerShell) y se re-aplicó con el hash íntegro. Login `admin` y `jperez` con `Admin2026*` → `200`. Las contraseñas únicas por usuario quedan pendientes (B1). | `database/migrations/*.up.sql`, `database/seed/0001_seed_bootstrap.sql` | `SHOW TABLES` (11), `SELECT username, role FROM user` (3), `POST /api/session` → `200` |
 | 2026-09-18 | IA (asistente) | [E1] | Suite backend verde tras A1–A7: `go test ./...`, `go vet ./...` y `gofmt -l` sin salida dentro de `golang:1.25-alpine` (Go no está instalado en el host). | — | `docker run --rm -v ...:/src -w /src golang:1.25-alpine sh -c "gofmt -w . && gofmt -l . && go vet ./... && go test ./..."` → OK |
+
+| 2026-09-18 | IA (asistente) | [B1] | Verificación de contraseñas únicas: tras ejecutar `db-init`, los 3 `password_hash` de `user` son distintos ($2a$10$... admin, $2b$10$MHp... jperez, $2b$10$V23... lramirez) y los logins `admin/Admin2026*`, `jperez/Tech2026#1`, `lramirez/Tech2026#2` responden `200` con su rol. | — (seed de la persona 2) | `SELECT username, LEFT(password_hash,10) FROM user` → 3 distintos; `POST /api/session` → `200` x3 |
+| 2026-09-18 | IA (asistente) | [D1] | Corrección al `db-init` de la persona 2: el servicio no declaraba `networks: [app-network]` y corría en la red por defecto sin poder resolver el host `db` ("Unknown MySQL server host 'db'"). Se agregó la red y se quitó `down -v` de la verificación (podía borrar `proyecto_db_data`). | `docker-compose.yml` | `docker compose run --rm db-init` → OK (11 migraciones + seed) |
+| 2026-09-18 | IA (asistente) | [D2] | Se aplicaron migraciones + seed al stack activo mediante el propio `db-init` (sin `down -v`): BD con las 11 tablas y 3 usuarios con hashes únicos; 3 logins probados contra `localhost:8080`. | `docker compose run --rm db-init` | `SHOW TABLES` (11), 3 hashes distintos, `POST /api/session` 200 x3 |
+| 2026-09-18 | IA (asistente) | [C1][C2][C3][C4] | Verificación del merge del bloque frontend de la persona 2 (role guard en rutas admin con `ProtectedRoute`, sin llamadas admin-only en pantallas de técnico, formularios ocultos en órdenes entregadas y técnico asignado en el detalle), incluyendo sus ajustes backend (`FindSummary`). | `frontend/src/app/ProtectedRoute.tsx`, `App.tsx`, `frontend/src/features/service-order/*`, `backend/internal/repository/service_order_repository.go` | `npm test` (8 archivos / 27 tests) OK; `gofmt -w . && go vet ./... && go test ./...` OK; en vivo `jperez GET /api/customer` → 403 |
+| 2026-09-18 | IA (asistente) | [E2] | Suite de frontend ejecutada tras el merge: 8 archivos de test (27 tests) en verde, incluidos los nuevos `ProtectedRoute.test.tsx`, `AssignmentPanel.test.tsx`, `DeliveryLockPanels.test.tsx` y `ServiceOrderPage.test.tsx`. Se aplicó `gofmt` a 5 archivos backend del merge. | `frontend/` (vitest + jsdom) | `node:20-alpine sh -c "npm ci && npm test"` → 27/27 OK; `docker compose build` → frontend y backend OK; stack `up -d` sano |
 
 _(Agregar aquí cada corrección completada.)_
 
